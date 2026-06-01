@@ -1,13 +1,12 @@
-const express = require("express")
-const mysql = require("mysql2")
-const cors = require("cors")
-const bcrypt = require("bcryptjs")
-const jwt = require("jsonwebtoken")
+const express = require("express");
+const mysql = require("mysql2");
+const cors = require("cors");
+const bcrypt = require("bcryptjs");
 
-const app = express()
+const app = express();
 
-app.use(cors())
-app.use(express.json())
+app.use(cors());
+app.use(express.json());
 
 // ================= DATABASE =================
 const db = mysql.createConnection({
@@ -15,121 +14,65 @@ const db = mysql.createConnection({
     user: "root",
     password: "",
     database: "SMS"
-})
+});
 
-db.connect(err => {
-    if (err) console.log(err)
-    else console.log("MySQL Connected")
-})
+db.connect((err) => {
+    if (err) console.log(err);
+    else console.log("Database Connected Successfully");
+});
 
-// ================= JWT =================
-const JWT_SECRET = "stockhub_secret"
 
-// ================= AUTH MIDDLEWARE =================
-const auth = (req, res, next) => {
-
-    const token = req.headers.authorization?.split(" ")[1]
-
-    if (!token) return res.status(401).json({ message: "No token" })
-
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) return res.status(403).json({ message: "Invalid token" })
-        req.user = user
-        next()
-    })
-}
-
-/* =====================================================
-===================== AUTH =============================
-===================================================== */
-
-// REGISTER
+// ================= REGISTER =================
 app.post("/register", async (req, res) => {
 
-    const { fullname, email, phone, username, password } = req.body
+    const { username, password } = req.body;
 
-    if (!fullname || !email || !phone || !username || !password) {
-        return res.status(400).json({
-            success: false,
-            message: "All fields required"
-        })
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const sql = "INSERT INTO users(username,password) VALUES (?,?)";
+
+        db.query(sql, [username, hashedPassword], (err) => {
+
+            if (err) return res.status(500).json(err);
+
+            res.json({ message: "User Registered Successfully" });
+        });
+
+    } catch (error) {
+        res.status(500).json(error);
     }
+});
 
-    db.query(
-        "SELECT * FROM users WHERE username=?",
-        [username],
-        async (err, result) => {
 
-            if (result.length > 0) {
-                return res.json({
-                    success: false,
-                    message: "Username already exists"
-                })
-            }
-
-            const hash = await bcrypt.hash(password, 10)
-
-            db.query(
-                "INSERT INTO users(fullname,email,phone,username,password) VALUES (?,?,?,?,?)",
-                [fullname, email, phone, username, hash],
-                (err) => {
-                    if (err) return res.json(err)
-
-                    res.json({
-                        success: true,
-                        message: "User registered successfully"
-                    })
-                }
-            )
-        }
-    )
-})
-
-// LOGIN
+// ================= LOGIN =================
 app.post("/login", (req, res) => {
 
-    const { username, password } = req.body
+    const { username, password } = req.body;
 
-    if (!username || !password) {
-        return res.status(400).json({ message: "All fields required" })
-    }
+    const sql = "SELECT * FROM users WHERE username=?";
 
-    db.query(
-        "SELECT * FROM users WHERE username=?",
-        [username],
-        async (err, result) => {
+    db.query(sql, [username], async (err, result) => {
 
-            if (result.length === 0) {
-                return res.status(404).json({ message: "User not found" })
-            }
+        if (err) return res.status(500).json(err);
 
-            const user = result[0]
-
-            const match = await bcrypt.compare(password, user.password)
-
-            if (!match) {
-                return res.status(401).json({ message: "Wrong password" })
-            }
-
-            const token = jwt.sign(
-                { id: user.id },
-                JWT_SECRET,
-                { expiresIn: "1d" }
-            )
-
-            res.json({
-                success: true,
-                token
-            })
+        if (result.length === 0) {
+            return res.json({ message: "User Not Found" });
         }
-    )
-})
 
-/* =====================================================
-===================== PRODUCTS =========================
-===================================================== */
+        const valid = await bcrypt.compare(password, result[0].password);
 
-app.post("/products", auth, (req, res) => {
+        if (!valid) {
+            return res.json({ message: "Wrong Password" });
+        }
+
+        res.json({ message: "Login Success" });
+    });
+});
+
+
+// ================= PRODUCTS =================
+app.post("/products", (req, res) => {
 
     const {
         productName,
@@ -138,83 +81,62 @@ app.post("/products", auth, (req, res) => {
         unitPrice,
         supplierName,
         dateReceived
-    } = req.body
+    } = req.body;
 
-    if (!productName || !category || !quantityInStock || !unitPrice || !supplierName || !dateReceived) {
-        return res.status(400).json({ message: "All fields required" })
-    }
+    const sql = `
+    INSERT INTO product
+    (productName, category, quantityInStock, unitPrice, supplierName, dateReceived)
+    VALUES (?,?,?,?,?,?)
+    `;
 
-    db.query(
-        `INSERT INTO Product(productName,category,quantityInStock,unitPrice,supplierName,dateReceived)
-        VALUES (?,?,?,?,?,?)`,
+    db.query(sql,
         [productName, category, quantityInStock, unitPrice, supplierName, dateReceived],
         (err) => {
-            if (err) return res.json(err)
-            res.json({ message: "Product added" })
+
+            if (err) return res.status(500).json(err);
+
+            res.json({ message: "Product Created Successfully" });
         }
-    )
-})
+    );
+});
 
-app.get("/products", auth, (req, res) => {
-    db.query("SELECT * FROM Product", (err, r) => res.json(r))
-})
+app.get("/products", (req, res) => {
 
-app.put("/products/:id", auth, (req, res) => {
-    db.query(
-        `UPDATE Product SET productName=?,category=?,quantityInStock=?,unitPrice=?,supplierName=?,dateReceived=? WHERE productCode=?`,
-        [...Object.values(req.body), req.params.id],
-        () => res.json({ message: "Updated" })
-    )
-})
+    db.query("SELECT * FROM product ORDER BY productCode DESC", (err, result) => {
+        if (err) return res.status(500).json(err);
+        res.json(result);
+    });
+});
 
-app.delete("/products/:id", auth, (req, res) => {
-    db.query("DELETE FROM Product WHERE productCode=?", [req.params.id], () => {
-        res.json({ message: "Deleted" })
-    })
-})
 
-/* =====================================================
-===================== WAREHOUSE ========================
-===================================================== */
+// ================= WAREHOUSE =================
+app.post("/warehouse", (req, res) => {
 
-app.post("/warehouses", auth, (req, res) => {
+    const { warehouseName, warehouseLocation } = req.body;
 
-    const { warehouseName, warehouseLocation } = req.body
+    const sql = `
+    INSERT INTO warehouse (warehouseName, warehouseLocation)
+    VALUES (?,?)
+    `;
 
-    if (!warehouseName || !warehouseLocation) {
-        return res.status(400).json({ message: "All fields required" })
-    }
+    db.query(sql, [warehouseName, warehouseLocation], (err) => {
+        if (err) return res.status(500).json(err);
 
-    db.query(
-        "INSERT INTO Warehouse(warehouseName,warehouseLocation) VALUES (?,?)",
-        [warehouseName, warehouseLocation],
-        () => res.json({ message: "Warehouse added" })
-    )
-})
+        res.json({ message: "Warehouse Saved Successfully" });
+    });
+});
 
-app.get("/warehouses", auth, (req, res) => {
-    db.query("SELECT * FROM Warehouse", (err, r) => res.json(r))
-})
+app.get("/warehouses", (req, res) => {
 
-app.put("/warehouses/:id", auth, (req, res) => {
-    db.query(
-        "UPDATE Warehouse SET warehouseName=?,warehouseLocation=? WHERE warehouseCode=?",
-        [req.body.warehouseName, req.body.warehouseLocation, req.params.id],
-        () => res.json({ message: "Updated" })
-    )
-})
+    db.query("SELECT * FROM warehouse ORDER BY warehouseCode DESC", (err, result) => {
+        if (err) return res.status(500).json(err);
+        res.json(result);
+    });
+});
 
-app.delete("/warehouses/:id", auth, (req, res) => {
-    db.query("DELETE FROM Warehouse WHERE warehouseCode=?", [req.params.id], () => {
-        res.json({ message: "Deleted" })
-    })
-})
 
-/* =====================================================
-=================== TRANSACTIONS =======================
-===================================================== */
-
-app.post("/transactions", auth, (req, res) => {
+// ================= CONTROLLED TRANSACTIONS =================
+app.post("/transactions", (req, res) => {
 
     const {
         productCode,
@@ -222,95 +144,146 @@ app.post("/transactions", auth, (req, res) => {
         transactionDate,
         quantityMoved,
         transactionType
-    } = req.body
+    } = req.body;
 
-    if (!productCode || !warehouseCode || !transactionDate || !quantityMoved || !transactionType) {
-        return res.status(400).json({ message: "All fields required" })
-    }
+    const getProduct =
+        "SELECT quantityInStock FROM product WHERE productCode=?";
 
-    if (quantityMoved <= 0) {
-        return res.status(400).json({ message: "Quantity must be > 0" })
-    }
+    db.query(getProduct, [productCode], (err, result) => {
 
-    db.query(
-        `INSERT INTO StockTransaction(productCode,warehouseCode,transactionDate,quantityMoved,transactionType)
-        VALUES (?,?,?,?,?)`,
-        [productCode, warehouseCode, transactionDate, quantityMoved, transactionType],
-        () => res.json({ message: "Transaction saved" })
-    )
-})
+        if (err) return res.status(500).json(err);
 
-app.get("/transactions", auth, (req, res) => {
+        if (result.length === 0) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+
+        let stock = result[0].quantityInStock;
+
+        // ================= RULES =================
+
+        if (transactionType === "Stock In") {
+
+            // You can only add if valid (your controlled rule)
+            if (Number(quantityMoved) <= 0) {
+                return res.status(400).json({
+                    message: "Invalid Stock In quantity"
+                });
+            }
+
+            stock = stock + Number(quantityMoved);
+        }
+
+        else if (transactionType === "Stock Out") {
+
+            if (Number(quantityMoved) > stock) {
+                return res.status(400).json({
+                    message: `Not enough stock. Available: ${stock}`
+                });
+            }
+
+            stock = stock - Number(quantityMoved);
+        }
+
+        // UPDATE PRODUCT STOCK
+        const updateProduct =
+            "UPDATE product SET quantityInStock=? WHERE productCode=?";
+
+        db.query(updateProduct, [stock, productCode], (err2) => {
+
+            if (err2) return res.status(500).json(err2);
+
+            // INSERT TRANSACTION (LOG ONLY)
+            const sql = `
+            INSERT INTO stocktransaction
+            (productCode, warehouseCode, transactionDate, quantityMoved, transactionType)
+            VALUES (?,?,?,?,?)
+            `;
+
+            db.query(sql,
+                [productCode, warehouseCode, transactionDate, quantityMoved, transactionType],
+                (err3) => {
+
+                    if (err3) return res.status(500).json(err3);
+
+                    res.json({
+                        message: "Transaction Successful",
+                        remainingStock: stock
+                    });
+                }
+            );
+        });
+    });
+});
+
+
+// ================= GET TRANSACTIONS =================
+app.get("/transactions", (req, res) => {
 
     const sql = `
-        SELECT t.transactionId,
+    SELECT
+        t.transactionId,
+        t.productCode,
         p.productName,
+        t.warehouseCode,
         w.warehouseName,
         t.transactionDate,
         t.quantityMoved,
         t.transactionType
-        FROM StockTransaction t
-        JOIN Product p ON t.productCode=p.productCode
-        JOIN Warehouse w ON t.warehouseCode=w.warehouseCode
-    `
+    FROM stocktransaction t
+    JOIN product p ON t.productCode = p.productCode
+    JOIN warehouse w ON t.warehouseCode = w.warehouseCode
+    ORDER BY t.transactionId DESC
+    `;
 
-    db.query(sql, (err, r) => res.json(r))
-})
+    db.query(sql, (err, result) => {
+        if (err) return res.status(500).json(err);
+        res.json(result);
+    });
+});
 
-app.put("/transactions/:id", auth, (req, res) => {
-    db.query(
-        `UPDATE StockTransaction SET productCode=?,warehouseCode=?,transactionDate=?,quantityMoved=?,transactionType=? WHERE transactionId=?`,
-        [...Object.values(req.body), req.params.id],
-        () => res.json({ message: "Updated" })
-    )
-})
 
-app.delete("/transactions/:id", auth, (req, res) => {
-    db.query("DELETE FROM StockTransaction WHERE transactionId=?", [req.params.id], () => {
-        res.json({ message: "Deleted" })
-    })
-})
-
-/* =====================================================
-===================== REPORTS ==========================
-===================================================== */
-
-app.get("/reports/:type", auth, (req, res) => {
-
-    let condition = ""
-
-    if (req.params.type === "daily") {
-        condition = "WHERE DATE(t.transactionDate)=CURDATE()"
-    }
-
-    if (req.params.type === "weekly") {
-        condition = "WHERE YEARWEEK(t.transactionDate)=YEARWEEK(CURDATE())"
-    }
-
-    if (req.params.type === "monthly") {
-        condition = "WHERE MONTH(t.transactionDate)=MONTH(CURDATE())"
-    }
+// ================= DASHBOARD =================
+app.get("/dashboard", (req, res) => {
 
     const sql = `
-        SELECT t.transactionId,
-        p.productName,
-        w.warehouseName,
-        t.transactionDate,
-        t.quantityMoved,
-        t.transactionType
-        FROM StockTransaction t
-        JOIN Product p ON t.productCode=p.productCode
-        JOIN Warehouse w ON t.warehouseCode=w.warehouseCode
-        ${condition}
-    `
+    SELECT
+    (SELECT COUNT(*) FROM product) AS products,
+    (SELECT COUNT(*) FROM warehouse) AS warehouses,
+    (SELECT COUNT(*) FROM stocktransaction WHERE transactionType='Stock In') AS stockin,
+    (SELECT COUNT(*) FROM stocktransaction WHERE transactionType='Stock Out') AS stockout
+    `;
 
-    db.query(sql, (err, r) => res.json(r))
-})
+    db.query(sql, (err, result) => {
+        if (err) return res.status(500).json(err);
+        res.json(result[0]);
+    });
+});
 
-/* =====================================================
-===================== SERVER ===========================
-===================================================== */
 
+// ================= REPORTS =================
+app.get("/report/daily", (req, res) => {
+    db.query("SELECT * FROM stocktransaction WHERE DATE(transactionDate)=CURDATE()", (err, result) => {
+        if (err) return res.status(500).json(err);
+        res.json(result);
+    });
+});
+
+app.get("/report/weekly", (req, res) => {
+    db.query("SELECT * FROM stocktransaction WHERE YEARWEEK(transactionDate)=YEARWEEK(NOW())", (err, result) => {
+        if (err) return res.status(500).json(err);
+        res.json(result);
+    });
+});
+
+app.get("/report/monthly", (req, res) => {
+    db.query("SELECT * FROM stocktransaction WHERE MONTH(transactionDate)=MONTH(NOW()) AND YEAR(transactionDate)=YEAR(NOW())", (err, result) => {
+        if (err) return res.status(500).json(err);
+        res.json(result);
+    });
+});
+
+
+// ================= START SERVER =================
 app.listen(5000, () => {
-    console.log("Server running on port 5000")
-})
+    console.log("Server Running On Port 5000");
+});

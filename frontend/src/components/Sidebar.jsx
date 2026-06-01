@@ -1,49 +1,67 @@
-import { Link } from 'react-router-dom'
+import React from "react";
+import { Link } from "react-router-dom";
 
 function Sidebar() {
 
-    const logout = () => {
-        localStorage.removeItem('token')
-        window.location.href = '/'
-    }
+  return (
 
-    return (
+    <div className="bg-gray-900 text-white w-64 min-h-screen">
 
-        <div className="h-screen w-64 bg-blue-800 text-white fixed">
+      <h2 className="text-center text-xl py-4">
+        SMS Menu
+      </h2>
 
-            <h1 className="text-2xl font-bold p-5 border-b border-blue-600">
-                StockHub SMS
-            </h1>
+      <ul>
 
-            <div className="flex flex-col p-4 gap-4">
+        <li>
+          <Link
+            to="/dashboard"
+            className="block p-3 hover:bg-gray-700"
+          >
+            Dashboard
+          </Link>
+        </li>
 
-                <Link className="hover:bg-blue-600 p-2 rounded" to="/product">
-                    Product
-                </Link>
+        <li>
+          <Link
+            to="/product"
+            className="block p-3 hover:bg-gray-700"
+          >
+            Product
+          </Link>
+        </li>
 
-                <Link className="hover:bg-blue-600 p-2 rounded" to="/warehouse">
-                    Warehouse
-                </Link>
+        <li>
+          <Link
+            to="/warehouse"
+            className="block p-3 hover:bg-gray-700"
+          >
+            Warehouse
+          </Link>
+        </li>
 
-                <Link className="hover:bg-blue-600 p-2 rounded" to="/transactions">
-                    Transactions
-                </Link>
+        <li>
+          <Link
+            to="/transaction"
+            className="block p-3 hover:bg-gray-700"
+          >
+            Transactions
+          </Link>
+        </li>
 
-                <Link className="hover:bg-blue-600 p-2 rounded" to="/reports">
-                    Reports
-                </Link>
+        <li>
+          <Link
+            to="/reports"
+            className="block p-3 hover:bg-gray-700"
+          >
+            Reports
+          </Link>
+        </li>
 
-                <button
-                    onClick={logout}
-                    className="bg-red-500 p-2 rounded mt-10"
-                >
-                    Logout
-                </button>
+      </ul>
 
-            </div>
-
-        </div>
-    )
+    </div>
+  );
 }
 
-export default Sidebar
+export default Sidebar;

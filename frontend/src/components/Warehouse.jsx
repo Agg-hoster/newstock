@@ -1,111 +1,99 @@
-import { useEffect, useState } from "react"
-import axios from "axios"
+import React, { useState } from "react";
+import axios from "axios";
+import Navbar from "./Navbar";
+import Sidebar from "./Sidebar";
 
 function Warehouse() {
 
-    const token = localStorage.getItem("token")
-
-    const [data, setData] = useState([])
-
-    const [form, setForm] = useState({
+    const [warehouse, setWarehouse] = useState({
         warehouseName: "",
         warehouseLocation: ""
-    })
+    });
 
-    const [editId, setEditId] = useState(null)
+    const handleChange = (e) => {
+        setWarehouse({
+            ...warehouse,
+            [e.target.name]: e.target.value
+        });
+    };
 
-    const load = async () => {
-        const res = await axios.get("http://localhost:5000/warehouses", {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-        setData(res.data)
-    }
+    const saveWarehouse = async (e) => {
+        e.preventDefault();
 
-    useEffect(() => {
-        load()
-    }, [])
+        const res = await axios.post(
+            "http://localhost:5000/warehouse",
+            warehouse
+        );
 
-    const submit = async (e) => {
-        e.preventDefault()
+        alert(res.data.message);
 
-        if (editId) {
-            await axios.put(`http://localhost:5000/warehouses/${editId}`, form, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-        } else {
-            await axios.post("http://localhost:5000/warehouses", form, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-        }
-
-        setForm({ warehouseName: "", warehouseLocation: "" })
-        setEditId(null)
-        load()
-    }
-
-    const edit = (w) => {
-        setForm(w)
-        setEditId(w.warehouseCode)
-    }
-
-    const remove = async (id) => {
-        await axios.delete(`http://localhost:5000/warehouses/${id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-        load()
-    }
+        setWarehouse({
+            warehouseName: "",
+            warehouseLocation: ""
+        });
+    };
 
     return (
+        <>
+            <Navbar />
 
-        <div>
+            <div className="flex">
+                <Sidebar />
 
-            <form onSubmit={submit} className="flex gap-2 mb-4">
+                <div className="flex-1 p-8 bg-gray-100 min-h-screen">
 
-                <input className="border p-2"
-                    placeholder="Name"
-                    value={form.warehouseName}
-                    onChange={e => setForm({ ...form, warehouseName: e.target.value })}
-                />
+                    <div className="bg-white shadow-lg rounded-lg p-6 max-w-3xl mx-auto">
 
-                <input className="border p-2"
-                    placeholder="Location"
-                    value={form.warehouseLocation}
-                    onChange={e => setForm({ ...form, warehouseLocation: e.target.value })}
-                />
+                        <h1 className="text-2xl font-bold mb-6 text-center">
+                            Warehouse Registration
+                        </h1>
 
-                <button className="bg-blue-600 text-white px-4">
-                    {editId ? "Update" : "Save"}
-                </button>
+                        <form onSubmit={saveWarehouse}>
 
-            </form>
+                            <div className="mb-4">
+                                <label className="block mb-1">
+                                    Warehouse Name
+                                </label>
 
-            <table className="w-full border">
+                                <input
+                                    type="text"
+                                    name="warehouseName"
+                                    value={warehouse.warehouseName}
+                                    onChange={handleChange}
+                                    className="border w-full p-2 rounded"
+                                    required
+                                />
+                            </div>
 
-                <tbody>
-                    {data.map(w => (
-                        <tr key={w.warehouseCode} className="text-center">
+                            <div className="mb-4">
+                                <label className="block mb-1">
+                                    Warehouse Location
+                                </label>
 
-                            <td>{w.warehouseName}</td>
-                            <td>{w.warehouseLocation}</td>
+                                <input
+                                    type="text"
+                                    name="warehouseLocation"
+                                    value={warehouse.warehouseLocation}
+                                    onChange={handleChange}
+                                    className="border w-full p-2 rounded"
+                                    required
+                                />
+                            </div>
 
-                            <td>
-                                <button onClick={() => edit(w)} className="bg-yellow-500 px-2">
-                                    Edit
-                                </button>
+                            <button
+                                className="bg-green-600 text-white px-6 py-2 rounded"
+                            >
+                                Save Warehouse
+                            </button>
 
-                                <button onClick={() => remove(w.warehouseCode)} className="bg-red-500 px-2">
-                                    Delete
-                                </button>
-                            </td>
+                        </form>
 
-                        </tr>
-                    ))}
-                </tbody>
+                    </div>
 
-            </table>
-
-        </div>
-    )
+                </div>
+            </div>
+        </>
+    );
 }
 
-export default Warehouse
+export default Warehouse;

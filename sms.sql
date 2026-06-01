@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 30, 2026 at 12:52 PM
+-- Generation Time: Jun 01, 2026 at 12:57 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -42,11 +42,8 @@ CREATE TABLE `product` (
 --
 
 INSERT INTO `product` (`productCode`, `productName`, `category`, `quantityInStock`, `unitPrice`, `supplierName`, `dateReceived`) VALUES
-(1, 'dodo', 'a', 21, 100.00, 'kadodo', '2026-05-07'),
-(2, 'umuceri', 'b', 67, 200.00, 'kamuceri', '2026-05-01'),
-(3, 'y', '9', 0, 0.00, 'i', '2026-04-29'),
-(4, 'ng', 'd', 0, 0.00, 'd', '2026-05-01'),
-(5, 'f', 'fs', 0, 0.00, 's', '2026-05-01');
+(1, 'Dodo', 'A', 4, 100.00, 'UMURERWA Anneth', '2026-06-02'),
+(2, 'Umuceri', 'B', 5, 1000.00, 'UMUTONI Scovia', '2026-06-01');
 
 -- --------------------------------------------------------
 
@@ -60,7 +57,7 @@ CREATE TABLE `stocktransaction` (
   `warehouseCode` int(11) DEFAULT NULL,
   `transactionDate` date DEFAULT NULL,
   `quantityMoved` int(11) DEFAULT NULL,
-  `transactionType` varchar(50) DEFAULT NULL
+  `transactionType` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -68,7 +65,8 @@ CREATE TABLE `stocktransaction` (
 --
 
 INSERT INTO `stocktransaction` (`transactionId`, `productCode`, `warehouseCode`, `transactionDate`, `quantityMoved`, `transactionType`) VALUES
-(2, 1, 1, '2026-05-05', 3, 'IN');
+(1, 1, 1, '2026-06-03', 2, 'Stock Out'),
+(2, 2, 2, '2026-06-02', 3, 'Stock Out');
 
 -- --------------------------------------------------------
 
@@ -78,19 +76,16 @@ INSERT INTO `stocktransaction` (`transactionId`, `productCode`, `warehouseCode`,
 
 CREATE TABLE `users` (
   `id` int(11) NOT NULL,
-  `fullname` varchar(100) DEFAULT NULL,
-  `email` varchar(100) DEFAULT NULL,
-  `phone` varchar(20) DEFAULT NULL,
   `username` varchar(100) DEFAULT NULL,
-  `password` varchar(100) DEFAULT NULL
+  `password` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `fullname`, `email`, `phone`, `username`, `password`) VALUES
-(1, 'UBARUTA Agnes', 'ubarutaagnes4@gmail.com', '0789876344', 'Agnes', '$2b$10$hKsu/Lr8njR0AdOCEQQWNeGnucN9dq0kIrnA7q9su.MUbvK5Ii1Cq');
+INSERT INTO `users` (`id`, `username`, `password`) VALUES
+(1, 'Agnes', '$2b$10$suUFRJ6/7Er5iHMhtHISGOsAWPvzniVtw5FMtJHHoPl9mFzSz6W5W');
 
 -- --------------------------------------------------------
 
@@ -109,8 +104,8 @@ CREATE TABLE `warehouse` (
 --
 
 INSERT INTO `warehouse` (`warehouseCode`, `warehouseName`, `warehouseLocation`) VALUES
-(1, 'dodostore', 'nyarutarama'),
-(2, 'ff', 'ff');
+(1, 'Kicukiro Ware House', 'Kicukiro'),
+(2, 'Umuceri Ware House', 'Nyagatare');
 
 --
 -- Indexes for dumped tables
@@ -150,7 +145,7 @@ ALTER TABLE `warehouse`
 -- AUTO_INCREMENT for table `product`
 --
 ALTER TABLE `product`
-  MODIFY `productCode` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `productCode` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `stocktransaction`
