@@ -8,22 +8,48 @@ import Warehouse from "./components/Warehouse";
 import Transaction from "./components/Transaction";
 import Reports from "./components/Reports";
 
+import ProtectedRoute from "./components/ProtectedRoute";
+
 function App() {
   return (
     <BrowserRouter>
 
       <Routes>
 
-        {/* Authentication */}
+        {/* PUBLIC ROUTES */}
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Main Pages */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/product" element={<Product />} />
-        <Route path="/warehouse" element={<Warehouse />} />
-        <Route path="/transaction" element={<Transaction />} />
-        <Route path="/reports" element={<Reports />} />
+        {/* PROTECTED ROUTES */}
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/product" element={
+          <ProtectedRoute>
+            <Product />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/warehouse" element={
+          <ProtectedRoute>
+            <Warehouse />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/transaction" element={
+          <ProtectedRoute>
+            <Transaction />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/reports" element={
+          <ProtectedRoute>
+            <Reports />
+          </ProtectedRoute>
+        } />
 
       </Routes>
 

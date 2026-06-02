@@ -21,15 +21,26 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const res = await axios.post(
-      "http://localhost:5000/login",
-      formData
-    );
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/login",
+        formData
+      );
 
-    alert(res.data.message);
+      alert(res.data.message);
 
-    if (res.data.message === "Login Success") {
-      navigate("/dashboard");
+      if (res.data.message === "Login Success") {
+
+        // SAVE LOGIN SESSION
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("username", formData.username);
+
+        navigate("/dashboard");
+      }
+
+    } catch (error) {
+      console.log(error);
+      alert("Login failed");
     }
   };
 
@@ -51,6 +62,7 @@ function Login() {
           placeholder="Username"
           className="border p-2 w-full mb-3"
           onChange={handleChange}
+          required
         />
 
         <input
@@ -59,6 +71,7 @@ function Login() {
           placeholder="Password"
           className="border p-2 w-full mb-3"
           onChange={handleChange}
+          required
         />
 
         <button className="bg-blue-600 text-white w-full p-2">
@@ -67,10 +80,7 @@ function Login() {
 
         <p className="mt-3">
           No account?
-          <Link
-            to="/register"
-            className="text-blue-600 ml-2"
-          >
+          <Link to="/register" className="text-blue-600 ml-2">
             Register
           </Link>
         </p>
